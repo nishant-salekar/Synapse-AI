@@ -15,7 +15,13 @@ const Layout = () => {
     <div className='flex flex-col items-start justify-start h-screen'>
 
 <nav className='w-full px-8 min-h-14 flex items-center justify-between border-b border-gray-200'>
-<img className='cursor-pointer w-32 sm:w-44' src={assets.logo} alt="" onClick={()=>navigate('/')} />
+<span
+  className="text-3xl text-blue-800 sm:text-3xl font-bold cursor-pointer"
+  onClick={() => navigate('/')}
+>
+  Synapse Ai
+</span>
+
 {
   sidebar ? <X onClick={()=> setSidebar(false)} className='w-6 h-6 text-gray-600 sm:hidden' />
   : <Menu onClick={()=> setSidebar(true)} className='w-6 h-6 text-gray-600 sm:hidden' />
