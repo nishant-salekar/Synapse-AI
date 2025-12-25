@@ -69,9 +69,13 @@ export const generateBlogTitle = async (req, res) => {
   try {
     const { userId } = req.auth();
     const prompt = req.body.prompt?.trim();
+    const plan = req.plan;  
     const free_usage = req.free_usage;
 
     if (!prompt) return res.json({ success: false, message: "Keyword required" });
+
+    if (plan !== "premium" && free_usage >= 10)
+      return res.json({ success: false, message: "Limit reached. Upgrade to continue." });
 
     const response = await AI.chat.completions.create({
       model: MODEL,
@@ -93,12 +97,18 @@ export const generateBlogTitle = async (req, res) => {
 
     const content = response.choices[0].message.content;
 
+   await sql `INSERT INTO creations (user_id, prompt, content, type) 
+   VALUES (${userId}, ${prompt}, ${content}, 'blog-title')`;
+
+   if (plan !== "premium") { await clerkClient.users.updateUserMetadata(userId, { privateMetadata: { free_usage: free_usage + 1 }, }); }
+
     res.json({ success: true, content });
   } catch (error) {
     console.log("Blog Error:", error);
     res.json({ success: false, message: "Groq Error: " + error.message });
   }
 };
+
 
 export const generateImage = async (req, res)=>{
     try {
@@ -202,6 +212,10 @@ res.json({success: true , content: imageUrl})
 export const resumeReview = async (req, res) => {
   try {
     const { userId } = req.auth();
+    const plan = req.plan; 
+    
+    // 🔐 Usage limit
+    if (plan !== "premium") { return res.json({ success: false, message: "This feature is only available for premium subscriptions", }); }
 
     if (!req.file) return res.json({ success: false, message: "Upload PDF Resume" });
 
@@ -236,6 +250,11 @@ ATS Issues:
     });
 
     const content = response.choices[0].message.content;
+
+    await sql `INSERT INTO creations (user_id, prompt, content, type) VALUES (${userId}, 'Resume review', ${content}, 'resume-review')` ;
+
+    // 📊 Update usage
+    if (plan !== "premium") { await clerkClient.users.updateUserMetadata(userId, { privateMetadata: { free_usage: free_usage + 1, }, }); }
 
     res.json({ success: true, content });
   } catch (error) {
